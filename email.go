@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
-	_ "html/template"
+	ht "html/template"
 	"log"
-	_ "os"
-	tt "text/template"
+	_ "text/template"
 
 	"github.com/wneessen/go-mail"
 )
@@ -17,9 +16,11 @@ func SendEmail(cfg Config, message *mail.Msg) {
 		log.Fatalf("failed to create mail client: %s", err)
 	}
 	defer c.Close()
+
 	if err := c.DialAndSend(message); err != nil {
 		log.Fatalf("failed to send mail: %s", err)
 	}
+
 	fmt.Println("Email Sent!") // Send email here
 }
 
@@ -31,16 +32,33 @@ func CreateMail(cfg Config) (*mail.Msg, error) {
 	if err := m.To("dave.receiver@example.com"); err != nil {
 		log.Fatalf("failed to set To address: %s", err)
 	}
-	textBodyTemplate, err := ReadFile("email/test/template.txt")
+
+	// textBodyTemplate, err := ReadFile("email/test/template.txt")
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// ttpl, err := tt.New("texttpl").Parse(textBodyTemplate)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	htmlBodyTemplate, err := ReadFile("email/test/template.html")
 	if err != nil {
 		return nil, err
 	}
-	ttpl, err := tt.New("texttpl").Parse(textBodyTemplate)
+
+	htpl, err := ht.New("htmltpl").Parse(htmlBodyTemplate)
 	if err != nil {
 		return nil, err
 	}
+
 	m.Subject("Hello, Gophers!")
-	m.SetBodyTextTemplate(ttpl, nil)
+	err = m.SetBodyHTMLTemplate(htpl, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set body: %s", err)
+	}
+
 	return m, nil
 }
 
@@ -49,5 +67,6 @@ func EmailOnTimer(cfg Config) {
 	if err != nil {
 		log.Fatalf("failed to create mail: %s", err)
 	}
+
 	SendEmail(cfg, m)
 }
